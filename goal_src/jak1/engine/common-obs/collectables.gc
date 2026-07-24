@@ -1663,41 +1663,91 @@
 )
 
 (defmethod drop-pickup ((this fact-info) (arg0 symbol) (arg1 process-tree) (arg2 fact-info) (arg3 int))
-  (let ((s3-0 (-> this pickup-type))
-        (f30-0 (-> this pickup-amount)))
-    (when (= s3-0 (pickup-type eco-pill-random))
-      f30-0
-      (let ((s1-0 (get-death-count *game-info* #f)))
-        (set! s3-0 (pickup-type eco-pill))
-        (set! f30-0
-              (cond
-                ((and (= s1-0 1) *target* (and (>= 1.0 (-> *target* fact health)) (rand-vu-percent? (the-as float 0.1))))
-                 (set! s3-0 (pickup-type eco-green))
-                 1.0)
-                ((and (< 1 s1-0) *target* (and (>= 2.0 (-> *target* fact health)) (rand-vu-percent? (the-as float 0.05))))
-                 (set! s3-0 (pickup-type eco-green))
-                 1.0)
-                ((< 20 *eco-pill-count*) (return (the-as (pointer process) #f)) f30-0)
-                ((< 10 *eco-pill-count*) 1.0)
-                ((type-type? (-> this type) fact-info-enemy)
-                 (+ (rand-vu-float-range (the-as float 3.0) (+ 5.0 f30-0)) (the float arg3)))
-                (else (+ (rand-vu-float-range (the-as float 2.0) (+ 3.0 f30-0)) (the float arg3)))))))
+  (let (
+    (type (-> this pickup-type))
+    (amount (-> this pickup-amount))
+  )
+    (when (= type (pickup-type eco-pill-random))
+      (let ((death-count (get-death-count *game-info* #f)))
+        (set! type (pickup-type eco-pill))
+
+        (cond
+          ((and
+            (= death-count 1)
+            (and
+              *target*
+              (>= 1.0 (-> *target* fact health))
+            )
+            (rand-vu-percent? (the-as float 0.1))
+          )
+            (set! type (pickup-type eco-green))
+            (set! amount 1.0)
+          )
+
+          ((and
+            (< 1 death-count)
+            (and
+              *target*
+              (>= 2.0 (-> *target* fact health))
+            )
+            (rand-vu-percent? (the-as float 0.05))
+          )
+            (set! type (pickup-type eco-green))
+            (set! amount 1.0)
+          )
+
+          ;;mod: Increased hard eco pill cap: 20 -> 30
+          ((< 30 *eco-pill-count*)
+            (return (the-as (pointer process) #f))
+          )
+
+          ;;mod: Increased soft eco pill cap: 10 -> 20
+          ((< 20 *eco-pill-count*)
+            (set! amount 1.0)
+          )
+
+          ((type-type? (-> this type) fact-info-enemy)
+            ; [3, amount + 5)
+            (set! amount (+ (rand-vu-float-range 3.0 (+ 5.0 amount)) (the float arg3)))
+          )
+
+          (else
+            ; [2, amount + 3)
+            (set! amount (+ (rand-vu-float-range 2.0 (+ 3.0 amount)) (the float arg3)))
+          )
+        )
+      )
+    )
+
     (let ((s2-1 (new 'stack-no-clear 'vector)))
       (set! (-> s2-1 quad) (-> this process root trans quad))
-      (+! (-> s2-1 y) 12288.0)
+      (+! (-> s2-1 y) (meters 3.0))
       (let ((s1-1 (new 'stack-no-clear 'collide-tri-result)))
-        (if (>= (fill-and-probe-using-y-probe *collide-cache*
-                                              s2-1
-                                              (the-as float 81920.0)
-                                              (collide-kind background)
-                                              (the-as process-drawable #f)
-                                              s1-1
-                                              (new 'static 'pat-surface :noentity #x1))
-                0.0)
+        (if
+          (>=
+            (fill-and-probe-using-y-probe
+              *collide-cache*
+              s2-1
+              (meters 20.0)
+              (collide-kind background)
+              (the-as process-drawable #f)
+              s1-1
+              (new 'static 'pat-surface :noentity #x1)
+            )
+            0.0
+          )
           (set! (-> s2-1 quad) (-> s1-1 intersect quad))
-          (set! (-> s2-1 quad) (-> this process root trans quad))))
-      (if (= (the-as int s3-0) 6) (+! (-> s2-1 y) 6144.0))
-      (birth-pickup-at-point s2-1 (the-as pickup-type s3-0) f30-0 arg0 arg1 this))))
+          (set! (-> s2-1 quad) (-> this process root trans quad))
+        )
+      )
+
+      (if (= (the-as int type) 6)
+        (+! (-> s2-1 y) (meters 1.5))
+      )
+      (birth-pickup-at-point s2-1 (the-as pickup-type type) amount arg0 arg1 this)
+    )
+  )
+)
 
 (deftype ecovalve (process-drawable)
   ((root          collide-shape-moving :override)

@@ -183,60 +183,132 @@
   arg0)
 
 (defbehavior target-attacked target ((arg0 symbol) (arg1 attack-info) (arg2 process) (arg3 touching-shapes-entry) (arg4 (state symbol attack-info target)))
-  (when (not (logtest? (-> self state-flags) (state-flags being-attacked)))
-    (cond
-      ((or (logtest? (-> self state-flags) (state-flags invulnerable timed-invulnerable invuln-powerup))
-           (and (logtest? (-> arg1 mask) (attack-mask mode))
-                (= (-> arg1 mode) 'darkeco)
-                (and (has-eco? (pickup-type eco-red))
-                     (logtest? (state-flags dangerous flop-hit-ground) (-> self state-flags)))))
-       (case arg0
-         (('attack-or-shove))
-         (('attack-invinc) (set! arg0 'attack))
-         (else (return #f))))
-      (else
-       (case arg0
-         (('attack-or-shove 'attack-invinc) (set! arg0 'attack)))))
-    (mem-copy! (the-as pointer (-> self attack-info-rec)) (the-as pointer arg1) 104)
-    (when arg3
-      (let ((a1-2 (prims-touching? arg3 (-> self control) (the-as uint -1))))
-        (when a1-2
-          (get-intersect-point (-> self attack-info-rec intersection) a1-2 (-> self control) arg3)
-          (logior! (-> self attack-info-rec mask) (attack-mask intersection)))))
-    (set! (-> self attack-info-rec prev-state) (-> self state))
-    (logior! (-> self attack-info-rec mask) (attack-mask atki13))
-    (when (not (logtest? (-> self attack-info-rec mask) (attack-mask attacker)))
-      (set! (-> self attack-info-rec attacker) (process->handle arg2))
-      (logior! (-> self attack-info-rec mask) (attack-mask attacker)))
-    (cond
-      ((and (logtest? (-> self attack-info-rec mask) (attack-mask mode))
-            (and (= (-> self attack-info-rec mode) 'damage) (not (and (= (-> self game mode) 'play) (>= 1.0 (-> self fact health))))))
-       (pickup-collectable! (-> self fact) (pickup-type eco-green) (- (-> *FACT-bank* health-single-inc)) (the-as handle #f))
-       (process-spawn part-tracker
-                      :init
-                      part-tracker-init
-                      (part-group target-hit)
-                      -1
-                      #f
-                      #f
-                      #f
-                      (if (logtest? (-> self attack-info-rec mask) (attack-mask intersection))
-                        (-> self attack-info-rec intersection)
-                        (-> self control root-prim prim-core))
-                      :to
-                      self)
-       (target-timed-invulnerable (if (logtest? (-> self attack-info-rec mask) (attack-mask invinc-time))
-                                    (-> self attack-info-rec invinc-time)
-                                    (-> *TARGET-bank* hit-invulnerable-timeout))
-                                  self)
-       (cpad-set-buzz! (-> *cpad-list* cpads 0) 0 255 (seconds 0.5))
-       (sound-play "oof")
-       #t)
-      (else
-       (logior! (-> self state-flags) (state-flags being-attacked))
-       (if (and (= (-> self game mode) 'play) (and (>= 1.0 (-> self fact health)) (= arg0 'attack)))
-         (logior! (-> self state-flags) (state-flags dying)))
-       (go arg4 arg0 (-> self attack-info-rec))))))
+  (let ((lifedrain? #f))
+    (when (not (logtest? (-> self state-flags) (state-flags being-attacked)))
+      (cond
+        ((or
+          (logtest? (-> self state-flags) (state-flags invulnerable timed-invulnerable invuln-powerup))
+          (and
+            (logtest? (-> arg1 mask) (attack-mask mode))
+            (= (-> arg1 mode) 'darkeco)
+            (and
+              (has-eco? (pickup-type eco-red))
+              (logtest? (state-flags dangerous flop-hit-ground) (-> self state-flags))
+            )
+          )
+        )
+          (case arg0
+            (('attack-or-shove))
+
+            (('lifedrain)
+              (set! lifedrain? #t)
+              (set! arg0 'attack)
+            )
+
+            (('attack-invinc)
+              (set! arg0 'attack)
+            )
+
+            (else
+              (return #f)
+            )
+          )
+        )
+
+        (else
+          (case arg0
+            (('lifedrain)
+              (set! lifedrain? #t)
+              (set! arg0 'attack)
+            )
+
+            ((
+              'attack-or-shove
+              'attack-invinc
+            )
+              (set! arg0 'attack)
+            )
+          )
+        )
+      )
+
+      (mem-copy! (the-as pointer (-> self attack-info-rec)) (the-as pointer arg1) 104)
+
+      (when arg3
+        (let ((a1-2 (prims-touching? arg3 (-> self control) (the-as uint -1))))
+          (when a1-2
+            (get-intersect-point (-> self attack-info-rec intersection) a1-2 (-> self control) arg3)
+            (logior! (-> self attack-info-rec mask) (attack-mask intersection))
+          )
+        )
+      )
+
+      (set! (-> self attack-info-rec prev-state) (-> self state))
+      (logior! (-> self attack-info-rec mask) (attack-mask atki13))
+      (when (not (logtest? (-> self attack-info-rec mask) (attack-mask attacker)))
+        (set! (-> self attack-info-rec attacker) (process->handle arg2))
+        (logior! (-> self attack-info-rec mask) (attack-mask attacker))
+      )
+
+      (cond
+        ((and
+          (logtest? (-> self attack-info-rec mask) (attack-mask mode))
+          (and
+            (= (-> self attack-info-rec mode) 'damage)
+            (not
+              (and
+                (= (-> self game mode) 'play)
+                (>= 1.0 (-> self fact health))
+              )
+            )
+          )
+        )
+
+        (pickup-collectable!
+          (-> self fact)
+          (pickup-type eco-green)
+          (- (-> *FACT-bank* health-single-inc))
+          (the-as handle #f)
+        )
+
+        (process-spawn part-tracker
+          :init part-tracker-init
+          (part-group target-hit)
+          -1
+          #f
+          #f
+          #f
+          (if (logtest? (-> self attack-info-rec mask) (attack-mask intersection))
+            (-> self attack-info-rec intersection)
+            (-> self control root-prim prim-core)
+          )
+          :to self
+        )
+          
+        (target-timed-invulnerable
+          (if (logtest? (-> self attack-info-rec mask) (attack-mask invinc-time))
+            (-> self attack-info-rec invinc-time)
+            (-> *TARGET-bank* hit-invulnerable-timeout)
+          )
+          self
+        )
+        (cpad-set-buzz! (-> *cpad-list* cpads 0) 0 255 (seconds 0.5))
+        (sound-play "oof")
+        #t)
+        (else
+          (logior! (-> self state-flags) (state-flags being-attacked))
+          (if (and (= (-> self game mode) 'play) (and (>= 1.0 (-> self fact health)) (= arg0 'attack)))
+            (logior! (-> self state-flags) (state-flags dying))
+          )
+
+          (when (not (= arg0 'lifedrain))
+            (go arg4 arg0 (-> self attack-info-rec))
+          )
+        )
+      )
+    )
+  )
+)
 
 (defbehavior target-send-attack target ((arg0 process) (arg1 uint) (arg2 touching-shapes-entry) (arg3 int) (arg4 int))
   (let ((v1-0 (new 'stack-no-clear 'event-message-block)))
@@ -390,7 +462,7 @@
 
 (defbehavior target-standard-event-handler target ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   (case arg2
-    (('attack 'attack-or-shove 'attack-invinc)
+    (('attack 'attack-or-shove 'attack-invinc 'lifedrain)
      (target-attacked arg2
                       (the-as attack-info (-> arg3 param 1))
                       arg0
@@ -473,7 +545,7 @@
                            (-> self control target-attack-id)
                            (-> self control attack-count))
        (target-standard-event-handler arg0 arg1 arg2 arg3)))
-    (('attack 'attack-or-shove 'attack-invinc)
+    (('attack 'attack-or-shove 'attack-invinc 'lifedrain)
      (target-attacked arg2
                       (the-as attack-info (-> arg3 param 1))
                       arg0

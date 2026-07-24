@@ -1,0 +1,74 @@
+;;-*-Lisp-*-
+(in-package goal)
+
+(deftype lifedrain-bank (basic)
+  (
+    (time-per-pill-drain   time-frame)
+    (time-per-health-drain time-frame)
+    (pill-drain-cell-inc   time-frame)
+    (health-drain-cell-inc time-frame)
+  )
+)
+
+(define *lifedrain-bank*
+  (new 'static 'lifedrain-bank
+    :time-per-pill-drain   (seconds 0.6)
+    :time-per-health-drain (seconds 3.0)
+    :pill-drain-cell-inc   (seconds 0.002)
+    :health-drain-cell-inc (seconds 0.02)
+  )
+)
+
+(deftype lifedrain-stats (basic)
+  (
+    (last-drain time-frame)
+  )
+)
+
+(define *lifedrain*
+  (new 'static 'lifedrain-stats
+    :last-drain 0
+  )
+)
+
+(defmacro time-for-pill-drain ()
+  `(+
+    (-> *lifedrain-bank* time-per-pill-drain)
+    (* (-> *lifedrain-bank* pill-drain-cell-inc) (-> *game-info* fuel))
+  )
+)
+
+(defmacro time-for-health-drain ()
+  `(+
+    (-> *lifedrain-bank* time-per-health-drain)
+    (* (-> *lifedrain-bank* health-drain-cell-inc) (-> *game-info* fuel))
+  )
+)
+
+(defun drain-life ()
+  (when (and
+    *target*
+    (-> *target* fact)
+    (> (-> *target* fact health) 0)
+  )
+    (if (> (-> *target* fact eco-pill) 0)
+      (begin ; #t
+        (when (>= (- (current-game-time) (-> *lifedrain* last-drain)) (time-for-pill-drain))
+          (set! (-> *lifedrain* last-drain) (current-game-time))
+
+          (-! (-> *target* fact eco-pill) 1)
+        )
+      )
+
+      (begin ; #f
+        (when (>= (- (current-game-time) (-> *lifedrain* last-drain)) (time-for-health-drain))
+          (set! (-> *lifedrain* last-drain) (current-game-time))
+
+          (send-event *target* 'lifedrain #f (static-attack-info ((mode 'generic))))
+        )
+      )
+    )
+  )
+
+  (none)
+)

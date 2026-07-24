@@ -27,7 +27,7 @@
             (when (and (type-type? (-> proc type) babak) (< 40960.0 (-> self control ctrl-xz-vel)))
               (let ((f0-5 (lerp-scale 16384.0 32768.0 (-> self control ctrl-xz-vel) 40960.0 (-> self racer transv-max))))
                 (go target-racing-jump f0-5 f0-5 #f))))
-           (('attack 'attack-or-shove 'attack-invinc)
+           (('attack 'attack-or-shove 'attack-invinc 'lifedrain)
             (let ((v1-27 (the-as attack-info (-> block param 1))))
               (if (not (and (logtest? (-> v1-27 mask) (attack-mask mode)) (or (= (-> v1-27 mode) 'burn) (= (-> v1-27 mode) 'burnup))))
                 (target-attacked message

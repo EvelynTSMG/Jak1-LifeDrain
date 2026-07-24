@@ -522,7 +522,7 @@
         #f
       )
 
-      (('attack 'attack-or-shove 'attack-invinc)
+      (('attack 'attack-or-shove 'attack-invinc 'lifedrain)
         (target-attacked
           'attack-or-shove
           (the-as attack-info (-> block param 1))

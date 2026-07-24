@@ -36,6 +36,9 @@
     (orb-placer-maintenance)
   )
 
+  ;; Attempt to drain life
+  (drain-life)
+
   ;; Update global variables
   (set! racer?
     (aif *target*

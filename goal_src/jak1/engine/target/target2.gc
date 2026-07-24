@@ -1606,7 +1606,7 @@
   :event
     (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
       (case message
-        (('attack 'attack-invinc)
+        (('attack 'attack-invinc 'lifedrain)
          (let ((v1-2 (the-as attack-info (-> block param 1))))
            (when (or (not (logtest? (-> v1-2 mask) (attack-mask mode))) (= (-> v1-2 mode) 'generic) (= (-> v1-2 mode) 'drown))
              (set! (-> v1-2 mode) 'damage)

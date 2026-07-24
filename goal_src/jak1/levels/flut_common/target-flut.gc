@@ -78,7 +78,7 @@
     (else
      (case arg2
        (('end-mode) (go target-flut-get-off (process->handle arg0)))
-       (('attack 'attack-or-shove 'attack-invinc)
+       (('attack 'attack-or-shove 'attack-invinc 'lifedrain)
         (target-attacked arg2
                          (the-as attack-info (-> arg3 param 1))
                          arg0
@@ -123,7 +123,7 @@
                            (-> self control target-attack-id)
                            (-> self control attack-count))
        (target-flut-standard-event-handler arg0 arg1 arg2 arg3)))
-    (('attack 'attack-or-shove 'attack-invinc)
+    (('attack 'attack-or-shove 'attack-invinc 'lifedrain)
      (target-attacked arg2
                       (the-as attack-info (-> arg3 param 1))
                       arg0
