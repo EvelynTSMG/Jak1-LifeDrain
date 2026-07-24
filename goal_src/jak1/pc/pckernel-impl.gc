@@ -71,8 +71,10 @@
 
 (deftype mod-settings (basic)
   (
+    (mod-difficulty     symbol) ; 'normal or 'hard or 'calamitous
     (doublejump-ability symbol) ; 'near-peak or 'always
     (always-max-jumps?  symbol) ; whether jumps should always be the maximum height (as if X was held)
+    (skip-death-movies? symbol) ; whether Daxter's death voice clips should be automatically skipped
     (skip-cells?        symbol) ; whether power cell cutscenes should be automatically skipped
     (skip-camera-pans?  symbol) ; whether camera pans (i.e. gamcams) should be skipped when possible
     (quick-mount?       symbol) ; whether jumping onto the zoomer or flut flut should mount them
@@ -180,8 +182,10 @@
 
 (defmethod reset-mod ((settings pc-settings-jak1) (call-handlers symbol))
   "Set the default mod settings"
+  (set! (-> settings mod mod-difficulty) 'hard)
   (set! (-> settings mod doublejump-ability) 'near-peak)
   (set! (-> settings mod always-max-jumps?) #f)
+  (set! (-> settings mod skip-death-movies?) #f)
   (set! (-> settings mod skip-cells?) #f)
   (set! (-> settings mod skip-camera-pans?) #f)
   (set! (-> settings mod quick-mount?) #f)

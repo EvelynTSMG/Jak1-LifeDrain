@@ -528,8 +528,10 @@
 
 (defmethod handle-input-mod-settings ((settings mod-settings) (file file-stream))
   (case-str *pc-temp-string*
+    (("mod-difficulty") (set! (-> settings mod-difficulty) (file-stream-read-symbol file)))
     (("doublejump-ability") (set! (-> settings doublejump-ability) (file-stream-read-symbol file)))
     (("always-max-jumps?") (set! (-> settings always-max-jumps?) (file-stream-read-symbol file)))
+    (("skip-death-movies?") (set! (-> settings skip-death-movies?) (file-stream-read-symbol file)))
     (("skip-cells?") (set! (-> settings skip-cells?) (file-stream-read-symbol file)))
     (("skip-camera-pans?") (set! (-> settings skip-camera-pans?) (file-stream-read-symbol file)))
     (("quick-mount?") (set! (-> settings quick-mount?) (file-stream-read-symbol file)))
@@ -540,8 +542,10 @@
 )
 
 (defmethod handle-output-mod-settings ((settings mod-settings) (file file-stream))
+  (format file "  (mod-difficulty ~A)~%" (-> settings mod-difficulty))
   (format file "  (doublejump-ability ~A)~%" (-> settings doublejump-ability))
   (format file "  (always-max-jumps? ~A)~%" (-> settings always-max-jumps?))
+  (format file "  (skip-death-movies? ~A)~%" (-> settings skip-death-movies?))
   (format file "  (skip-cells? ~A)~%" (-> settings skip-cells?))
   (format file "  (skip-camera-pans? ~A)~%" (-> settings skip-camera-pans?))
   (format file "  (quick-mount? ~A)~%" (-> settings quick-mount?))

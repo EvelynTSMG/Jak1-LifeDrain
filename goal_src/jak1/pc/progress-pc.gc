@@ -110,6 +110,9 @@
 (def-progress-carousell *carousell-easter-egg* (easter-eggs-disabled easter-eggs-enabled easter-eggs-permanent))
 (def-progress-carousell *carousell-easter-egg-desc* (easter-eggs-disabled-desc easter-eggs-enabled-desc easter-eggs-permanent-desc))
 
+(def-progress-carousell *carousell-mod-difficulty* (mod-difficulty-easy mod-difficulty-hard mod-difficulty-calamitous))
+(def-progress-carousell *carousell-mod-difficulty-desc* (mod-difficulty-easy-desc mod-difficulty-hard-desc mod-difficulty-calamitous-desc))
+
 (def-progress-carousell *carousell-doublejump-ability* (doublejump-ability-near-peak doublejump-ability-always))
 (def-progress-carousell *carousell-doublejump-ability-desc* (doublejump-ability-near-peak-desc doublejump-ability-always-desc))
 ;;[ADD-MOD-OPTION-CAROUSEL]; Add carousel definition here
@@ -465,6 +468,13 @@
     ;;[ADD-MOD-OPTION] Add game option element here
 
     (new 'static 'game-option
+      :option-type (game-option-type mod-difficulty)
+      :name (text-id mod-difficulty)
+      :desc (text-id mod-difficulty-desc)
+      :scale #t
+    )
+
+    (new 'static 'game-option
       :option-type (game-option-type doublejump-ability)
       :name (text-id doublejump-ability)
       :desc (text-id doublejump-ability-desc)
@@ -475,6 +485,13 @@
       :option-type (game-option-type on-off)
       :name (text-id always-max-jumps)
       :desc (text-id always-max-jumps-desc)
+      :scale #t
+    )
+
+    (new 'static 'game-option
+      :option-type (game-option-type on-off)
+      :name (text-id skip-death-movies)
+      :desc (text-id skip-death-movies-desc)
       :scale #t
     )
 
@@ -2370,10 +2387,12 @@
   ; Mod options
   ;;[ADD-MOD-OPTION]; Make sure these indices are still correct
   (set! (-> *mod-options* 0 value-to-modify) (&-> *progress-carousell* int-backup))
-  (set! (-> *mod-options* 1 value-to-modify) (&-> *pc-settings* mod always-max-jumps?))
-  (set! (-> *mod-options* 2 value-to-modify) (&-> *pc-settings* mod skip-cells?))
-  (set! (-> *mod-options* 3 value-to-modify) (&-> *pc-settings* mod skip-camera-pans?))
-  (set! (-> *mod-options* 4 value-to-modify) (&-> *pc-settings* mod quick-mount?))
+  (set! (-> *mod-options* 1 value-to-modify) (&-> *progress-carousell* int-backup))
+  (set! (-> *mod-options* 2 value-to-modify) (&-> *pc-settings* mod always-max-jumps?))
+  (set! (-> *mod-options* 3 value-to-modify) (&-> *pc-settings* mod skip-death-movies?))
+  (set! (-> *mod-options* 4 value-to-modify) (&-> *pc-settings* mod skip-cells?))
+  (set! (-> *mod-options* 5 value-to-modify) (&-> *pc-settings* mod skip-camera-pans?))
+  (set! (-> *mod-options* 6 value-to-modify) (&-> *pc-settings* mod quick-mount?))
   ;;[ADD-MOD-OPTION]; Set your option's value-to-modify here — carousels use `(&-> *progress-carousell* int-backup)`
 
   ; Easter Egg options
@@ -2584,6 +2603,7 @@
                       (game-option-type easter-egg)
                       (game-option-type unlockable-easter-egg)
                       (game-option-type doublejump-ability)
+                      (game-option-type mod-difficulty)
                       ;;[ADD-MOD-OPTION-CAROUSEL]; Add case for the game-option-type here
                     )
                       (dec-wrap!
@@ -2723,6 +2743,7 @@
                       (game-option-type easter-egg)
                       (game-option-type unlockable-easter-egg)
                       (game-option-type doublejump-ability)
+                      (game-option-type mod-difficulty)
                       ;;[ADD-MOD-OPTION-CAROUSEL]; Add case for the game-option-type here
                     )
                       (inc-wrap!
@@ -3327,6 +3348,14 @@
                       )
                     )
 
+                    (((game-option-type mod-difficulty))
+                      (case (-> *pc-settings* mod mod-difficulty)
+                        (('easy) (set! (-> *progress-carousell* int-backup) 0))
+                        (('hard) (set! (-> *progress-carousell* int-backup) 1))
+                        (('calamitous) (set! (-> *progress-carousell* int-backup) 2))
+                      )
+                    )
+
                     (((game-option-type doublejump-ability))
                       (case (-> *pc-settings* mod doublejump-ability)
                         (('near-peak) (set! (-> *progress-carousell* int-backup) 0))
@@ -3390,6 +3419,10 @@
                         )
                           (set! (-> *progress-carousell* current-carousell) *carousell-easter-egg*)
                           (set! (-> *progress-carousell* current-desc-carousell) *carousell-easter-egg-desc*)
+                        )
+                        (((game-option-type mod-difficulty))
+                          (set! (-> *progress-carousell* current-carousell) *carousell-mod-difficulty*)
+                          (set! (-> *progress-carousell* current-desc-carousell) *carousell-mod-difficulty-desc*)
                         )
                         (((game-option-type doublejump-ability))
                           (set! (-> *progress-carousell* current-carousell) *carousell-doublejump-ability*)
@@ -3525,6 +3558,14 @@
                       ((1) 'enabled)
                       ((2) 'permanent)
                     )
+                  )
+                )
+
+                (((game-option-type mod-difficulty))
+                  (case (-> *progress-carousell* int-backup)
+                    ((0) (set! (-> *pc-settings* mod mod-difficulty) 'easy))
+                    ((1) (set! (-> *pc-settings* mod mod-difficulty) 'hard))
+                    ((2) (set! (-> *pc-settings* mod mod-difficulty) 'calamitous))
                   )
                 )
 
@@ -3963,6 +4004,7 @@
                       (game-option-type easter-egg)
                       (game-option-type unlockable-easter-egg)
                       (game-option-type doublejump-ability)
+                      (game-option-type mod-difficulty)
                       ;;[ADD-MOD-OPTION-CAROUSEL]; Add case for game-option-type here
                     )
                      ;; crunched down to one generic function.
@@ -4050,6 +4092,7 @@
                       ; Mod carousels!
                       (game-option-type easter-egg)
                       (game-option-type doublejump-ability)
+                      (game-option-type mod-difficulty)
                       ;;[ADD-MOD-OPTION-CAROUSEL]; Add case for game-option-type here
                     )
                      ;; slider and aspect ratio options just show their text

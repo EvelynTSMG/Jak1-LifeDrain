@@ -3,38 +3,59 @@
 
 (deftype lifedrain-bank (basic)
   (
-    (time-per-pill-drain   time-frame)
-    (time-per-health-drain time-frame)
-    (pill-drain-cell-inc   time-frame)
-    (health-drain-cell-inc time-frame)
+    (time-per-pill-drain            time-frame)
+    (time-per-pill-drain-easy       time-frame)
+    (time-per-pill-drain-calamitous time-frame)
+    (time-per-health-drain          time-frame)
+    (time-per-health-drain-easy     time-frame)
+    (pill-drain-cell-inc            time-frame)
+    (pill-drain-cell-inc-easy       time-frame)
+    (health-drain-cell-inc          time-frame)
+    (health-drain-subsequent-inc    time-frame)
   )
 )
 
 (define *lifedrain-bank*
   (new 'static 'lifedrain-bank
-    :time-per-pill-drain   (seconds 0.6)
-    :time-per-health-drain (seconds 3.0)
-    :pill-drain-cell-inc   (seconds 0.002)
-    :health-drain-cell-inc (seconds 0.02)
+    :time-per-pill-drain            (seconds 0.3)
+    :time-per-pill-drain-easy       (seconds 0.4)
+    :time-per-pill-drain-calamitous (seconds 0.6)
+    :time-per-health-drain          (seconds 4.0)
+    :pill-drain-cell-inc            (seconds 0.002)
+    :pill-drain-cell-inc-easy       (seconds 0.003)
+    :health-drain-cell-inc          (seconds 0.02)
+    :health-drain-subsequent-inc    (seconds 1.5)
   )
 )
 
 (deftype lifedrain-stats (basic)
   (
-    (last-drain time-frame)
+    (last-drain      time-frame)
+    (last-drain-type     symbol)
   )
 )
 
 (define *lifedrain*
   (new 'static 'lifedrain-stats
     :last-drain 0
+    :last-drain-type #f
   )
 )
 
 (defmacro time-for-pill-drain ()
   `(+
-    (-> *lifedrain-bank* time-per-pill-drain)
-    (* (-> *lifedrain-bank* pill-drain-cell-inc) (-> *game-info* fuel))
+    (if (= (-> *pc-settings* mod mod-difficulty) 'easy)
+      (-> *lifedrain-bank* time-per-pill-drain-easy)
+      (-> *lifedrain-bank* time-per-pill-drain)
+    )
+    (*
+      (-> *game-info* fuel)
+      
+      (if (= (-> *pc-settings* mod mod-difficulty) 'easy)
+        (-> *lifedrain-bank* pill-drain-cell-inc-easy)
+        (-> *lifedrain-bank* pill-drain-cell-inc)
+      )
+    )
   )
 )
 
@@ -42,6 +63,17 @@
   `(+
     (-> *lifedrain-bank* time-per-health-drain)
     (* (-> *lifedrain-bank* health-drain-cell-inc) (-> *game-info* fuel))
+    (if (= (-> *lifedrain* last-drain-type) 'health)
+      (-> *lifedrain-bank* health-drain-subsequent-inc)
+      0
+    )
+  )
+)
+
+(defmacro lifedrain-difficulty (&rest difficulties)
+  `(case (-> *pc-settings* mod mod-difficulty)
+    ((,@difficulties) #t)
+    (else #f)
   )
 )
 
@@ -50,19 +82,61 @@
     *target*
     (-> *target* fact)
     (> (-> *target* fact health) 0)
+    (case (-> *target* next-state name)
+      ((
+        'target-billy-game
+        'target-death
+        'target-final-door
+        'target-fishing
+        'target-grab
+        'target-load-wait
+        'target-periscope
+        'target-startup
+        'target-title
+        'target-title-play
+        'target-title-wait
+        'target-warp-in
+        'target-warp-out
+      ) #f)
+      (else #t)
+    )
   )
     (if (> (-> *target* fact eco-pill) 0)
-      (begin ; #t
-        (when (>= (- (current-game-time) (-> *lifedrain* last-drain)) (time-for-pill-drain))
-          (set! (-> *lifedrain* last-drain) (current-game-time))
+      (when (>= (- (current-game-time) (-> *lifedrain* last-drain)) (time-for-pill-drain))
+        (set! (-> *lifedrain* last-drain) (current-game-time))
 
-          (-! (-> *target* fact eco-pill) 1)
+        (-! (-> *target* fact eco-pill) 1)
+        (set! (-> *lifedrain* last-drain-type) 'pill)
+
+        ; On Easy and Hard, health is converted into max pills when reaching 0.
+        ; On Calamitous, health drains normally
+        (when (and
+          (lifedrain-difficulty 'easy 'hard)
+          (>= 0 (-> *target* fact eco-pill))
+        )
+          (cond 
+            ((> (-> *target* fact health) 1)
+              (set! (-> *target* fact eco-pill)
+                (if (lifedrain-difficulty 'easy)
+                  (-> *FACT-bank* eco-pill-max-easy)
+                  (-> *FACT-bank* eco-pill-max-default)
+                )
+              )
+
+              (-! (-> *target* fact health) 1)
+            )
+
+            (else
+              (send-event *target* 'lifedrain #f (static-attack-info ((mode 'generic))))
+            )
+          )
         )
       )
 
-      (begin ; #f
+      (when (lifedrain-difficulty 'calamitous)
         (when (>= (- (current-game-time) (-> *lifedrain* last-drain)) (time-for-health-drain))
           (set! (-> *lifedrain* last-drain) (current-game-time))
+          (set! (-> *lifedrain* last-drain-type) 'health)
 
           (send-event *target* 'lifedrain #f (static-attack-info ((mode 'generic))))
         )

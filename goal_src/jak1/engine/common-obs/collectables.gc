@@ -359,13 +359,36 @@
          (set! v0-3 (current-time))
          (set! (-> self birth-time) (the-as time-frame v0-3))
          v0-3)))
-  :enter
-    (behavior ()
-      (if (and (logtest? (-> self fact options) (fact-options instant-collect can-collect))
-               (logtest? (-> self flags) (collectable-flags can-collect))
-               (!= (-> self next-state name) 'pickup)
-               (send-event *target* 'get-pickup (-> self fact pickup-type) (-> self fact pickup-amount)))
-        (go-virtual pickup #f (process->handle *target*))))
+
+  :enter (behavior ()
+    ;;mod: On Easy, green eco is immediately picked up by the player
+    ;;mod: On Easy and Hard, green eco pills are immediately picked up by the player
+    ;;BUG: This accidentally collects the pre-spawned green eco pills in Geyser Rock
+    (if (and
+      (or
+        (or
+          (and
+            (= (-> *pc-settings* mod mod-difficulty) 'easy)
+            (= (-> self fact pickup-type) (pickup-type eco-green))
+          )
+          (and
+            (!= (-> *pc-settings* mod mod-difficulty) 'calamitous)
+            (= (-> self fact pickup-type) (pickup-type eco-pill))
+          )
+        )
+
+        (and
+          (logtest? (-> self fact options) (fact-options instant-collect can-collect))
+          (logtest? (-> self flags) (collectable-flags can-collect))
+        )
+      )
+      (!= (-> self next-state name) 'pickup)
+      (send-event *target* 'get-pickup (-> self fact pickup-type) (-> self fact pickup-amount))
+    )
+      (go-virtual pickup #f (process->handle *target*))
+    )
+  )
+
   :trans
     (behavior ()
       (cond
@@ -499,7 +522,11 @@
            (('training)
             (level-hint-spawn (text-id training-eco-reminder) "sagevb23" (the-as entity #f) *entity-pool* (game-task none)))))
         (((pickup-type eco-green)) (sound-play "g-eco-pickup"))
-        (((pickup-type eco-green) (pickup-type eco-pill)) (sound-play "pill-pickup")))
+        (((pickup-type eco-green) (pickup-type eco-pill))
+          ;;mod: Mute eco pill pickup sounds
+          ;(sound-play "pill-pickup")
+        )
+      )
       (runs-on-eco-pickup (-> self fact pickup-type) (ppointer->process (-> self parent))) ;; trigger hook for mod base
       (if (nonzero? (-> self part)) (kill-and-free-particles (-> self part)))
       (let ((gp-6 (handle->process (-> self pickup-handle))))
@@ -1707,13 +1734,19 @@
           )
 
           ((type-type? (-> this type) fact-info-enemy)
-            ; [3, amount + 5)
-            (set! amount (+ (rand-vu-float-range 3.0 (+ 5.0 amount)) (the float arg3)))
+            ;;mod: On Easy, increased crate eco pill counts: [3, amount + 5) -> [5, amount + 7)
+            (if (= (-> *pc-settings* mod mod-difficulty) 'easy)
+              (set! amount (+ (rand-vu-float-range 5.0 (+ 7.0 amount)) (the float arg3)))
+              (set! amount (+ (rand-vu-float-range 3.0 (+ 5.0 amount)) (the float arg3)))
+            )
           )
 
           (else
-            ; [2, amount + 3)
-            (set! amount (+ (rand-vu-float-range 2.0 (+ 3.0 amount)) (the float arg3)))
+            ;;mod: On Easy, increased crate eco pill counts: [2, amount + 3) -> [4, amount + 6)
+            (if (= (-> *pc-settings* mod mod-difficulty) 'easy)
+              (set! amount (+ (rand-vu-float-range 4.0 (+ 6.0 amount)) (the float arg3)))
+              (set! amount (+ (rand-vu-float-range 2.0 (+ 3.0 amount)) (the float arg3)))
+            )
           )
         )
       )

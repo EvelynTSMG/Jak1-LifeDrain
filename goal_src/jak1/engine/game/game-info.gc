@@ -389,9 +389,24 @@
     (set! (-> this buzzer-max) (-> *FACT-bank* buzzer-max-default))
     (set! (-> this buzzer) 0.0))
   (when (or (not arg0) (= arg0 'eco-pill))
-    (set! (-> this eco-pill-max) (-> *FACT-bank* eco-pill-max-default))
-    (set! (-> this eco-pill) (-> *FACT-bank* eco-pill-max-default)))
-  (none))
+    (let (
+      (max-eco-pills
+        ;;mod: Eco pills have a higher limit on Easy
+        (if (= (-> *pc-settings* mod mod-difficulty) 'easy)
+          (-> *FACT-bank* eco-pill-max-easy)
+          (-> *FACT-bank* eco-pill-max-default)
+        )
+      )
+    )
+      (set! (-> this eco-pill-max) max-eco-pills)
+
+      ;;mod: Always spawn with max eco pills rather than 0
+      (set! (-> this eco-pill) max-eco-pills)
+    )
+  )
+
+  (none)
+)
 
 (declare-type vent process-drawable)
 
@@ -416,11 +431,18 @@
             (set-time! (-> this eco-source-time))))
         ;; if we are at max health (3), and collect additional an additional big green eco,
         ;; then max out the little green ecos.
-        (if (= (-> this health) (-> this health-max))
+        ;;mod: On Easy, always max out the pills
+        (if (or (= (-> *pc-settings* mod mod-difficulty) 'easy) (= (-> this health) (-> this health-max)))
           (pickup-collectable! this
-                               (pickup-type eco-pill)
-                               (-> *FACT-bank* eco-pill-max-default)
-                               (process->handle (-> this process))))
+            (pickup-type eco-pill)
+            ;;mod: Eco pills have a higher limit on Easy
+            (if (= (-> *pc-settings* mod mod-difficulty) 'easy)
+              (-> *FACT-bank* eco-pill-max-easy)
+              (-> *FACT-bank* eco-pill-max-default)
+            )
+            (process->handle (-> this process))
+          )
+        )
         ;; remember when
         (set-time! (-> this health-pickup-time))
         ;; increase the health!

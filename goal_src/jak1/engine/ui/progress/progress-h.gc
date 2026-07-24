@@ -176,6 +176,7 @@
       (unlockable-easter-egg)
       ;;[ADD-MOD-OPTION-CAROUSEL]
       (doublejump-ability)
+      (mod-difficulty)
     )
   ) ;; end of PC_PORT = #t branch for enum initialization
 ) ;; end of PC_PORT cond
