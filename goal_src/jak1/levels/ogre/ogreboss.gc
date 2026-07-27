@@ -696,8 +696,6 @@
    (near-pos                  vector :inline)
    (side-dir                  vector :inline)
    (target-offset-array       vector 3 :inline)
-   (target-offset-array-2     vector :inline :overlay-at (-> target-offset-array 1))
-   (target-offset-array-3     vector :inline :overlay-at (-> target-offset-array 2))
    (target-actor-array        entity-actor 3)
    (target-blast-radius-array float 3)
    (shuffle-pos               float)
@@ -901,42 +899,134 @@
                  (set! gp-0 s4-0)))))))))
   gp-0)
 
-(defbehavior ogreboss-shoot-boulder ogreboss ((arg0 pickup-type))
+(defbehavior ogreboss-shoot-boulder ogreboss ((drop pickup-type) (target int))
   (let ((gp-0 (new 'stack-no-clear 'ogreboss-missile-init-data)))
     (let ((s5-0 (new 'stack-no-clear 'vector)))
       ;; og:preserve-this
-      (set! (-> gp-0 src) (-> self node-list data (#if *jak1-full-game* 50 52) bone transform vector 3))
+      (let (
+        (node-idx
+          (#if *jak1-full-game*
+            50
+            52
+          )
+        )
+      )
+        (set! (-> gp-0 src) (-> self node-list data node-idx bone transform vector 3))
+      )
+
       (set! (-> gp-0 duration)
-            (the-as time-frame (the int (* 300.0 (+ 1.25 (/ (-> self level) -4) (/ 0.5 (-> self difficulty)))))))
-      (set! (-> gp-0 pickup-type) arg0)
+        (the-as time-frame
+          (the int
+            (* 300.0
+              (+
+                1.25
+                (/ (-> self level) -4)
+                (/ 0.5 (-> self difficulty))
+              )
+              (if target
+                2.0
+                1.0
+              )
+            )
+          )
+        )
+      )
+      (set! (-> gp-0 pickup-type) drop)
       (set! (-> gp-0 blast-radius) 32768.0)
       (cond
         (*target*
-         (let ((v1-10 (ogreboss-pick-target)))
-           (let* ((a0-3 (-> self target-actor-array v1-10))
-                  (a1-0 (if a0-3 (-> a0-3 extra process))))
-             (if a1-0
-               (set! (-> s5-0 quad) (-> (the-as process-drawable a1-0) root trans quad))
-               (set! (-> s5-0 quad) (-> self root trans quad))))
-           (vector+! s5-0 s5-0 (-> self target-offset-array v1-10))
-           (set! (-> gp-0 blast-radius) (-> self target-blast-radius-array v1-10))))
-        (else (vector+*! s5-0 (-> self root trans) *z-vector* (the-as float 409600.0))))
-      (set! (-> gp-0 dest) s5-0))
+         (let ((v1-10 (if target target (ogreboss-pick-target))))
+            (let* (
+              (a0-3 (-> self target-actor-array v1-10))
+              (a1-0 (if a0-3 (-> a0-3 extra process)))
+            )
+              (if a1-0
+                (set! (-> s5-0 quad) (-> (the-as process-drawable a1-0) root trans quad))
+                (set! (-> s5-0 quad) (-> self root trans quad))
+              )
+            )
+            (vector+! s5-0 s5-0 (-> self target-offset-array v1-10))
+            (set! (-> gp-0 blast-radius) (-> self target-blast-radius-array v1-10))
+          )
+        )
+
+        (else
+          (vector+*! s5-0 (-> self root trans) *z-vector* (the-as float 409600.0))
+        )
+      )
+      (set! (-> gp-0 dest) s5-0)
+    )
+
     (sound-play "ogre-fires" :position (the-as symbol (-> self root trans)))
     (process-spawn part-tracker
-                   :init
-                   part-tracker-init
-                   (part-group ogreboss-pre-missile)
-                   -1
-                   #f
-                   #f
-                   #f
-                   (-> gp-0 src)
-                   :to
-                   *entity-pool*)
-    (process-spawn ogreboss-missile gp-0 (-> self entity) :to self))
-  0
-  (none))
+      :init part-tracker-init
+      (part-group ogreboss-pre-missile)
+      -1
+      #f
+      #f
+      #f
+      (-> gp-0 src)
+      :to *entity-pool*
+    )
+    (process-spawn ogreboss-missile gp-0 (-> self entity) :to self)
+  )
+
+  (none)
+)
+
+(defbehavior ogreboss-shatter-super-boulder ogreboss ((target int))
+  (let (
+    (super-boulder (the-as process-drawable (handle->process (-> self boulder))))
+    (data (new 'stack-no-clear 'ogreboss-missile-init-data))
+  )
+    (set! (-> data src) (-> super-boulder node-list data 3 bone transform vector 3))
+    (set! (-> data duration) (seconds 2.5))
+    (set! (-> data pickup-type) (pickup-type eco-green))
+    (set! (-> data blast-radius) (meters 6.0))
+
+    (let ((dest (new 'stack-no-clear 'vector)))
+      (cond
+        (*target*
+          (let* (
+            (plat (-> self target-actor-array target))
+            (plat-proc (if plat (-> plat extra process)))
+          )
+            (format 0 "Shattering boulder #~D~%" target)
+            (format 0 "  ~A~%" plat)
+            (format 0 "  ~A~%" plat-proc)
+            (format 0 "  ~A~%" (the-as process-drawable plat-proc))
+            (suspend)
+            (if plat-proc
+              (set! (-> dest quad) (-> (the-as process-drawable plat-proc) root trans quad))
+              (set! (-> dest quad) (-> self root trans quad))
+            )
+          )
+          (vector+! dest dest (-> self target-offset-array target))
+          (set! (-> data blast-radius) (-> self target-blast-radius-array target))
+        )
+
+        (else
+          (vector+*! dest (-> self root trans) *z-vector* (meters 100.0))
+        )
+      )
+
+      (set! (-> data dest) dest)
+    )
+
+    (sound-play "ogre-fires" :position (the-as symbol (-> self root trans)))
+    (process-spawn part-tracker
+      :init part-tracker-init
+      (part-group ogreboss-pre-missile)
+      -1
+      #f
+      #f
+      #f
+      (-> data src)
+      :to *entity-pool*
+    )
+    (process-spawn ogreboss-missile data (-> self entity) :to self)
+  )
+)
 
 (defbehavior ogreboss-submerge ogreboss ((arg0 time-frame) (arg1 float))
   (when (not (-> self submerged))
@@ -1066,25 +1156,23 @@
         (until (ja-done? 0)
           (suspend)
           (ja :num! (seek! max f30-0)))
-        (countdown (gp-1 (+ gp-0 -1))
-          (let ((boulder-pickup (pickup-type none)))
-            (let ((f28-0 0.0))
-              (cond
-                ((>= 1.0 (-> *target* fact health)) (set! f28-0 0.1))
-                ((>= 2.0 (-> *target* fact health)) (set! f28-0 0.05)))
-              (set! f28-0
-                    (cond
-                      ((< (-> self try-count) (the-as uint 5)) (* 0.0 f28-0))
-                      ((< (-> self try-count) (the-as uint 10)) (/ f28-0 2))
-                      (else (empty) f28-0)))
-              (if (and *target* (< (rand-vu) f28-0)) (set! boulder-pickup (pickup-type eco-green))))
-            (ogreboss-shoot-boulder (the-as pickup-type boulder-pickup)))
-          (ja-no-eval :group! ogreboss-attack2-loop-ja :num! (seek! max f30-0) :frame-num 0.0)
-          (until (ja-done? 0)
-            (suspend)
-            (ja :num! (seek! max f30-0)))
-          (ogreboss-inc-try-count))
-        (ogreboss-shoot-boulder (pickup-type eco-blue))
+        (let ((green-eco-idx (rand-vu-int-range 0 (- gp-0 2))))
+          (countdown (gp-1 (+ gp-0 -1))
+            (ogreboss-shoot-boulder
+              (if (= gp-1 green-eco-idx)
+                (pickup-type eco-green)
+                (the-as pickup-type #f)
+              )
+              (the-as int #f)
+            )
+            (ja-no-eval :group! ogreboss-attack2-loop-ja :num! (seek! max f30-0) :frame-num 0.0)
+            (until (ja-done? 0)
+              (suspend)
+              (ja :num! (seek! max f30-0)))
+            (ogreboss-inc-try-count)
+          )
+        )
+        (ogreboss-shoot-boulder (pickup-type eco-blue) (the-as int #f))
         (ja-no-eval :group! ogreboss-attack2-last-ja :num! (seek! max f30-0) :frame-num 0.0)
         (until (ja-done? 0)
           (suspend)
@@ -1320,9 +1408,27 @@
       (send-event (handle->process (-> self boulder)) 'go-hit)
       (ja-channel-push! 1 (seconds 0.2))
       (ja-no-eval :group! ogreboss-hit-ja :num! (seek!) :frame-num 0.0)
-      (until (ja-done? 0)
-        (suspend)
-        (ja :num! (seek!)))
+
+      (let ((shattered? #f))
+        (until (ja-done? 0)
+          (suspend)
+          
+          (let ((frame (ja-aframe-num 0)))
+            (when (and
+              (not shattered?)
+              (>= frame 30.0)
+            )
+              (ogreboss-shatter-super-boulder 0)
+              (ogreboss-shatter-super-boulder 2)
+
+              (set! shattered? #t)
+            )
+          )
+
+          (ja :num! (seek!))
+        )
+      )
+
       (set! (-> self bridge-assembled) #f)
       (set! (-> self submerged) #t)
       (while (handle->process (-> self boulder))
@@ -1401,8 +1507,8 @@
       (set! (-> self target-actor-array s5-0) (entity-actor-lookup (-> self entity) 'target-actor s5-0)))
     (set! (-> self target-count) gp-1))
   (set-vector! (-> self target-offset-array 0) 0.0 16384.0 0.0 1.0)
-  (set-vector! (-> self target-offset-array-2) 0.0 16384.0 0.0 1.0)
-  (set-vector! (-> self target-offset-array-3) 0.0 16384.0 0.0 1.0)
+  (set-vector! (-> self target-offset-array 1) 0.0 16384.0 0.0 1.0)
+  (set-vector! (-> self target-offset-array 2) 0.0 16384.0 0.0 1.0)
   (set! (-> self target-blast-radius-array 0) 24576.0)
   (set! (-> self target-blast-radius-array 1) 24576.0)
   (set! (-> self target-blast-radius-array 2) 24576.0)
