@@ -110,30 +110,6 @@
 
         (-! (-> *target* fact eco-pill) 1)
         (set! (-> *lifedrain* last-drain-type) 'pill)
-
-        ; On Easy and Hard, health is converted into max pills when reaching 0.
-        ; On Calamitous, health drains normally
-        (when (and
-          (lifedrain-difficulty 'easy 'hard)
-          (>= 0 (-> *target* fact eco-pill))
-        )
-          (cond 
-            ((> (-> *target* fact health) 1)
-              (set! (-> *target* fact eco-pill)
-                (if (lifedrain-difficulty 'easy)
-                  (-> *FACT-bank* eco-pill-max-easy)
-                  (-> *FACT-bank* eco-pill-max-default)
-                )
-              )
-
-              (-! (-> *target* fact health) 1)
-            )
-
-            (else
-              (send-event *target* 'lifedrain #f (static-attack-info ((mode 'generic))))
-            )
-          )
-        )
       )
 
       (when (lifedrain-difficulty 'calamitous)
@@ -141,6 +117,30 @@
           (set! (-> *lifedrain* last-drain) (current-game-time))
           (set! (-> *lifedrain* last-drain-type) 'health)
 
+          (send-event *target* 'lifedrain #f (static-attack-info ((mode 'generic))))
+        )
+      )
+    )
+
+    ; On Easy and Hard, health is converted into max pills when reaching 0.
+    ; On Calamitous, health drains normally
+    (when (and
+      (lifedrain-difficulty 'easy 'hard)
+      (>= 0 (-> *target* fact eco-pill))
+    )
+      (cond 
+        ((> (-> *target* fact health) 1)
+          (set! (-> *target* fact eco-pill)
+            (if (lifedrain-difficulty 'easy)
+              (-> *FACT-bank* eco-pill-max-easy)
+              (-> *FACT-bank* eco-pill-max-default)
+            )
+          )
+
+          (-! (-> *target* fact health) 1)
+        )
+
+        (else
           (send-event *target* 'lifedrain #f (static-attack-info ((mode 'generic))))
         )
       )
