@@ -800,12 +800,31 @@
 
         (set! (-> self rank) rank)
 
+        ;;mod: The race is harder on higher difficulties to encourage
+        ;;     mistakes with the new near-miss mechanic
         (set! (-> self race-seconds)
-          (cond
-            ((> attempt-count 15) (fsec 110.0))
-            ((> attempt-count 10) (fsec 106.0))
-            ((> attempt-count  5) (fsec 102.0))
-            (else                 (fsec 100.0))
+          (case (-> *pc-settings* mod mod-difficulty)
+            (('nightmare)
+              (fsec 87.0)
+            )
+
+            (('hard)
+              (cond
+                ((> attempt-count 15) (fsec 106.0))
+                ((> attempt-count 10) (fsec 100.0))
+                ((> attempt-count  5) (fsec 97.0))
+                (else                 (fsec 92.0))
+              )
+            )
+
+            (('easy)
+              (cond
+                ((> attempt-count 15) (fsec 110.0))
+                ((> attempt-count 10) (fsec 106.0))
+                ((> attempt-count  5) (fsec 102.0))
+                (else                 (fsec 100.0))
+              )
+            )
           )
         )
         (+! (-> self race-seconds) (* (fsec 5.0) (max 2 (-> self rank))))
