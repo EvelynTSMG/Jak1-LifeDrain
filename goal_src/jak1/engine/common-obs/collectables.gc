@@ -370,6 +370,24 @@
           (and
             (= (-> *pc-settings* mod mod-difficulty) 'easy)
             (= (-> self fact pickup-type) (pickup-type eco-green))
+
+            ; Don't automatically collect green eco in the Klaww or Final Boss fights
+            ; because that would kill the player long-term
+            (not
+              (or
+                (and
+                  *target*
+                  (= (-> *target* current-level name) 'ogre)
+                  (not (task-closed? (game-task ogre-boss) (task-status need-resolution)))
+                )
+
+                (and
+                  *target*
+                  (= (-> *target* current-level name) 'finalboss)
+                  (not (task-closed? (game-task finalboss-movies) (task-status unknown)))
+                )
+              )
+            )
           )
           (and
             (!= (-> *pc-settings* mod mod-difficulty) 'calamitous)
