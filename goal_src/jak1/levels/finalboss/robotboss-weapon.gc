@@ -266,10 +266,27 @@
 
 (defstate darkecobomb-land (darkecobomb)
   :event darkecobomb-handler
-  :enter
-    (behavior ()
-      (set! (-> self state-time) (-> *display* game-frame-counter))
-      0)
+  :enter (behavior ()
+    (set! (-> self state-time) (-> *display* game-frame-counter))
+
+    (let ((health-pos (new 'stack-no-clear 'vector)))
+      (vector-copy! health-pos (-> self root trans))
+      (-! (-> health-pos y) (meters 8.5))
+    
+      (birth-pickup-at-point
+        health-pos
+        (pickup-type eco-green)
+        (case (-> *pc-settings* mod mod-difficulty)
+          (('calamitous) 3.0)
+          (('easy 'hard) 1.0)
+        )
+        #t
+        self
+        (the-as fact-info #f)
+      )
+    )
+      
+  )
   :trans
     (behavior ()
       (darkecobomb-explode-if-player-high-enough)

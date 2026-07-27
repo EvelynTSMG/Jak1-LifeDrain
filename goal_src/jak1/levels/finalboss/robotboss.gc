@@ -669,7 +669,14 @@
       (while (not (ja-done? 0))
         (suspend)
         (ja-eval))
-      (robotboss-setup-for-hits 8 (-> self dda yellow-gun-hits))
+      (robotboss-setup-for-hits
+        8
+        ;;mod: On Calamitous, the last phase takes less hits (as if max pity)
+        (case (-> *pc-settings* mod mod-difficulty)
+          (('calamitous) 10)
+          (else (-> self dda yellow-gun-hits))
+        )
+      )
       (if (nonzero? (-> self yellow-gun)) (set-mode! (-> self yellow-gun) (joint-mod-handler-mode look-at)))
       (loop
         (when (not (robotboss-time-to-shoot-yellow))
