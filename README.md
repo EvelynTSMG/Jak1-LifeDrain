@@ -24,8 +24,8 @@ In Jak 1: Life Drain, Jak is slowly drained of all life! Can you beat the game w
 
 ## On ***Easy*** difficulty,
 - Your eco pills will drain every 0.4 seconds.
-  - For every power cell you collect, this time is increased by 0.003 seconds\
-    (up to a total of 0.603 seconds at 101 power cells).
+  - For every power cell you collect, this time is increased by 0.0025 seconds\
+    (up to a total of 0.6525 seconds at 101 power cells).
 - After your eco pills reach zero, your health will be decreased by one, and your eco pills will be reset to the maximum.
 - The maximum amount of eco pills is increased to 99.
 - Eco pills and green eco are automatically picked up when they spawn.

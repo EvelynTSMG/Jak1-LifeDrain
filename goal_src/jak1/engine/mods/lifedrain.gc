@@ -8,8 +8,8 @@
     (time-per-pill-drain-calamitous time-frame)
     (time-per-health-drain          time-frame)
     (time-per-health-drain-easy     time-frame)
-    (pill-drain-cell-inc            time-frame)
-    (pill-drain-cell-inc-easy       time-frame)
+    (pill-drain-cell-inc                 float) ; These are so short they need to be floats for the precision
+    (pill-drain-cell-inc-easy            float) ; These are so short they need to be floats for the precision
     (health-drain-cell-inc          time-frame)
     (health-drain-subsequent-inc    time-frame)
   )
@@ -21,8 +21,8 @@
     :time-per-pill-drain-easy       (seconds 0.4)
     :time-per-pill-drain-calamitous (seconds 0.6)
     :time-per-health-drain          (seconds 4.0)
-    :pill-drain-cell-inc            (seconds 0.002)
-    :pill-drain-cell-inc-easy       (seconds 0.003)
+    :pill-drain-cell-inc            (fsec 0.002)
+    :pill-drain-cell-inc-easy       (fsec 0.0025)
     :health-drain-cell-inc          (seconds 0.02)
     :health-drain-subsequent-inc    (seconds 1.5)
   )
@@ -48,12 +48,15 @@
       (-> *lifedrain-bank* time-per-pill-drain-easy)
       (-> *lifedrain-bank* time-per-pill-drain)
     )
-    (*
-      (-> *game-info* fuel)
-      
-      (if (= (-> *pc-settings* mod mod-difficulty) 'easy)
-        (-> *lifedrain-bank* pill-drain-cell-inc-easy)
-        (-> *lifedrain-bank* pill-drain-cell-inc)
+
+    (* 1
+      (*
+        (-> *game-info* fuel)
+        
+        (if (= (-> *pc-settings* mod mod-difficulty) 'easy)
+          (-> *lifedrain-bank* pill-drain-cell-inc-easy)
+          (-> *lifedrain-bank* pill-drain-cell-inc)
+        )
       )
     )
   )
