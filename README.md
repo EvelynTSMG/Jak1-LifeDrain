@@ -40,3 +40,18 @@ In Jak 1: Life Drain, Jak is slowly drained of all life! Can you beat the game w
 - After your eco pills reach zero, your health will drain every 4 seconds.
   - For every power cell you collect, this time is increased by 0.02 seconds\
     (up to a total of 6.02 seconds at 101 power cells).
+
+## Specific changes to make the game possible
+- Fire Canyon and Lava Tube cooling balloons now restore 10 eco pills when hit.
+- Near-misses with the TNT barrels in Mountain Pass will generate eco pills.
+  - On Easy, a near-miss counts within 6m of a TNT barrel and generates 15 eco pills.
+  - On Hard, a near-miss counts within 5.5m of a TNT barrel and generates 12 eco pills.
+  - On Calamitous, a near-miss counts within 5m of a TNT barrel and generates 10 eco pills.
+- On Calamitous, Plant Boss's aphids drop many more green eco pills.
+- Exactly one of the Klaww boulders in the first phase will always spawn green eco.
+- Klaww's super boulder shatters in the air into two extra boulders,
+  fired at each platform. These boulders always spawn green eco.
+- When a Dark Eco Bomb lands during the Final Boss fight, it will spawn green eco under it.
+  - On Easy and Hard, this spawns 1 green eco.
+  - On Calamitous, this spawns 3 green eco.
+- On Calamitous, the Final Boss's last phase has reduced HP.
