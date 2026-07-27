@@ -1741,13 +1741,13 @@
             (set! amount 1.0)
           )
 
-          ;;mod: Increased hard eco pill cap: 20 -> 30
-          ((< 30 *eco-pill-count*)
+          ;;mod: Increased hard eco pill cap: 20 -> 100
+          ((< 100 *eco-pill-count*)
             (return (the-as (pointer process) #f))
           )
 
-          ;;mod: Increased soft eco pill cap: 10 -> 20
-          ((< 20 *eco-pill-count*)
+          ;;mod: Increased soft eco pill cap: 10 -> 50
+          ((< 50 *eco-pill-count*)
             (set! amount 1.0)
           )
 

@@ -231,6 +231,11 @@
   (vector-identity! (-> self collide-info scale))
   (set! (-> self entity) (-> arg0 entity))
   (nav-enemy-method-48 self)
+
+  (when (= (-> *pc-settings* mod mod-difficulty) 'calamitous)
+    (set! (-> self enemy-info pickup-amount) 20.0)
+  )
+
   (logclear! (-> self nav-enemy-flags) (nav-enemy-flags navenmf12))
   (set! (-> self try) (the-as int (send-event (ppointer->process (-> self parent)) 'try)))
   (go-virtual nav-enemy-chase)
