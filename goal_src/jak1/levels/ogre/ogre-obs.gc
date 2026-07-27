@@ -344,7 +344,7 @@
       (+! (-> self-pos y) (meters 2.25))
 
       (loop
-        ;(when *display-collision-marks*
+        (when *display-collision-marks*
           (add-debug-sphere
             #t
             (bucket-id debug)
@@ -352,7 +352,7 @@
             (meters near-miss-distance)
             (new 'static 'rgba :r #xff :g #x60 :b #x60 :a #x20)
           )
-        ;)
+        )
 
         ; (target-pos 26) is the position of Jak's butt
         (when (and
