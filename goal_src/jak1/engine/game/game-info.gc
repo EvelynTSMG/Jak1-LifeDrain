@@ -430,16 +430,11 @@
             (set! (-> this eco-source) source-handle)
             (set-time! (-> this eco-source-time))))
         ;; if we are at max health (3), and collect additional an additional big green eco,
-        ;; then max out the little green ecos.
-        ;;mod: On Easy, always max out the pills
-        (if (or (= (-> *pc-settings* mod mod-difficulty) 'easy) (= (-> this health) (-> this health-max)))
+        ;; then max out the little green eco
+        (if (= (-> this health) (-> this health-max))
           (pickup-collectable! this
             (pickup-type eco-pill)
-            ;;mod: Eco pills have a higher limit on Easy
-            (if (= (-> *pc-settings* mod mod-difficulty) 'easy)
-              (-> *FACT-bank* eco-pill-max-easy)
-              (-> *FACT-bank* eco-pill-max-default)
-            )
+            (-> this eco-pill-max)
             (process->handle (-> this process))
           )
         )
@@ -468,9 +463,9 @@
        (set-time! (-> this eco-pill-pickup-time))
        (seek! (-> this eco-pill) (-> this eco-pill-max) amount)
        ;; increment big health if needed
-       (when (and (>= (-> this eco-pill) (-> *FACT-bank* eco-pill-max-default)) (< (-> this health) (-> this health-max)))
+       (when (and (>= (-> this eco-pill) (-> this eco-pill-max)) (< (-> this health) (-> this health-max)))
          ;; decrease eco pills
-         (set! (-> this eco-pill) (- (-> this eco-pill) (-> *FACT-bank* eco-pill-max-default)))
+         (set! (-> this eco-pill) (- (-> this eco-pill) (-> this eco-pill-max)))
          ;; get a big health.
          (pickup-collectable! this (pickup-type eco-green) (-> *FACT-bank* health-small-inc) (process->handle (-> this process)))))
      (-> this eco-pill))
