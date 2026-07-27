@@ -421,10 +421,16 @@
         (when (< 0.0 amount)
           ;; when we get a different source, OR we it's been more than 0.5 seconds since we last got eco
           ;; from this source.
-          (if (or (!= (handle->process source-handle) (handle->process (-> this eco-source)))
-                  (time-elapsed? (-> this eco-source-time) (seconds 0.5)))
+          (when (and
+            source-handle
+            (or
+              (!= (handle->process source-handle) (handle->process (-> this eco-source)))
+              (time-elapsed? (-> this eco-source-time) (seconds 0.5))
+            )
+          )
             ;; play the sound!
-            (sound-play "get-green-eco"))
+            (sound-play "get-green-eco")
+          )
           ;; remember the source.
           (when (handle->process source-handle)
             (set! (-> this eco-source) source-handle)
@@ -456,19 +462,32 @@
          cfg-80
          :delay (nop!))
      (-> this health))
+
     (((pickup-type eco-pill))
-     ;; collect small green eco
-     (when (>= amount 0.0)
-       ;; update small eco count
-       (set-time! (-> this eco-pill-pickup-time))
-       (seek! (-> this eco-pill) (-> this eco-pill-max) amount)
-       ;; increment big health if needed
-       (when (and (>= (-> this eco-pill) (-> this eco-pill-max)) (< (-> this health) (-> this health-max)))
-         ;; decrease eco pills
-         (set! (-> this eco-pill) (- (-> this eco-pill) (-> this eco-pill-max)))
-         ;; get a big health.
-         (pickup-collectable! this (pickup-type eco-green) (-> *FACT-bank* health-small-inc) (process->handle (-> this process)))))
-     (-> this eco-pill))
+      ;; collect small green eco
+      (when (>= amount 0.0)
+        ;; update small eco count
+        (set-time! (-> this eco-pill-pickup-time))
+        (+! (-> this eco-pill) amount)
+        ;; increment big health if needed
+        (while (and
+          (>= (-> this eco-pill) (-> this eco-pill-max))
+          (< (-> this health) (-> this health-max))
+        )
+          ;; decrease eco pills
+          (set! (-> this eco-pill) (- (-> this eco-pill) (-> this eco-pill-max)))
+          ;; get a big health.
+          (if (= (-> *pc-settings* mod mod-difficulty) 'calamitous)
+            (pickup-collectable! this (pickup-type eco-green) (-> *FACT-bank* health-small-inc) (process->handle (-> this process)))
+            (pickup-collectable! this (pickup-type eco-green) (-> *FACT-bank* health-small-inc) (the-as handle #f))
+          )
+        )
+
+        (fmin! (-> this eco-pill) (-> this eco-pill-max))
+      )
+      (-> this eco-pill)
+    )
+
     (((pickup-type money))
      ;; get money.
      (when (< 0.0 amount)
