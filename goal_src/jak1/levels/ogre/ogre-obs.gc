@@ -318,12 +318,60 @@
         (('attack 'touch)
          (send-event proc 'attack-invinc (-> block param 0) (static-attack-info ((mode 'death))))
          (go-virtual die #f))))
-  :code
-    (behavior ()
-      (transform-post)
-      (logior! (-> self mask) (process-mask sleep))
-      (suspend)
-      0))
+  :code (behavior ()
+    (transform-post)
+
+    ;;mod: Near-misses with TNT barrels generate eco pills
+    (let (
+      (generated-pills? #f)
+      (near-miss-distance
+        (case (-> *pc-settings* mod mod-difficulty)
+          (('easy) 6.0)
+          (('hard) 5.5)
+          (('calamitous) 5.0)
+        )
+      )
+      (near-miss-reward
+        (case (-> *pc-settings* mod mod-difficulty)
+          (('easy) 15.0)
+          (('hard) 12.0)
+          (('calamitous) 10.0)
+        )
+      )
+      (self-pos (new 'stack-no-clear 'vector))
+    )
+      (vector-copy! self-pos (-> self root trans))
+      (+! (-> self-pos y) (meters 2.25))
+
+      (loop
+        ;(when *display-collision-marks*
+          (add-debug-sphere
+            #t
+            (bucket-id debug)
+            self-pos
+            (meters near-miss-distance)
+            (new 'static 'rgba :r #xff :g #x60 :b #x60 :a #x20)
+          )
+        ;)
+
+        ; (target-pos 26) is the position of Jak's butt
+        (when (and
+          (not generated-pills?)
+          *target*
+          (> (-> *target* fact health) 0)
+          (>= (meters near-miss-distance) (vector-vector-distance self-pos (target-pos 26)))
+        )
+          (pickup-collectable! (-> *target* fact) (pickup-type eco-pill) near-miss-reward (process->handle self))
+          (sound-play "pill-pickup" :vol 230 :position (the-as symbol (target-pos 26)))
+
+          (set! generated-pills? #t)
+        )
+
+        (suspend)
+      )
+    )
+  )
+)
 
 (defmethod init-from-entity! ((this tntbarrel) (arg0 entity-actor))
   (let ((s4-0 (new 'process 'collide-shape this (collide-list-enum usually-hit-by-player))))
